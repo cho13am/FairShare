@@ -13,3 +13,11 @@ export async function POST(req) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+export async function GET() {
+  try {
+    const [rows] = await db.query('SELECT * FROM bills ORDER BY created_at DESC');
+    return NextResponse.json(rows);
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
