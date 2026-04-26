@@ -13,7 +13,7 @@ export async function POST(req) {
 
     const [billResult] = await db.query(
       'INSERT INTO bills (title, bill_name, total_amount, payer_id, receipt_url) VALUES (?, ?, ?, ?, ?)',
-      [title, bill_name, total_amount, session.user.email, receipt_url]
+      [title, bill_name, total_amount, session.user.id, receipt_url]
     );
 
     const billId = billResult.insertId;
