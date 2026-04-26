@@ -1,12 +1,11 @@
 "use client";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
-import { useRouter } from "next/navigation";
+import { Suspense } from "react";
 
-export default function LoginPage() {
+function LoginContent() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
-  const router = useRouter();
 
   return (
     <div style={{
@@ -46,7 +45,7 @@ export default function LoginPage() {
         <img
           src="/Google.png"
           alt="Google"
-          style={{ width: '18px', height: '18px', objectContain: 'contain' }}
+          style={{ width: '18px', height: '18px', objectFit: 'contain' }}
         />
         <span style={{ fontWeight: '500' }}>Continue with Google</span>
       </button>
@@ -55,5 +54,13 @@ export default function LoginPage() {
         By continuing, you agree to our Terms of Service.
       </p>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }
