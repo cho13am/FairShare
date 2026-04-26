@@ -26,13 +26,16 @@ export async function POST(req) {
       }
     }
 
-    return NextResponse.json({ message: 'Bill created', billId: result.insertId });
+    return NextResponse.json({ message: 'Bill created', billId: billResult.insertId });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const [bills] = await db.query('SELECT * FROM bills ORDER BY created_at DESC');
 
     const billsWithItems = await Promise.all(bills.map(async (bill) => {
@@ -40,12 +43,12 @@ export async function GET() {
 
       return {
         ...bill,
-        create_at: new Data(bill.create_at).toLocaleString('th-TH'),
+        created_at: new Date(bill.create_at).toLocaleString('th-TH'),
         items: items
       };
     }))
-    
-    return NextResponse.json(rows);
+
+    return NextResponse.json(billsWithItems);
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
