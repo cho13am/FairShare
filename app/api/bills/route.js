@@ -26,7 +26,7 @@ export async function POST(req) {
       }
     }
 
-    return NextResponse.json({ message: 'Bill created', billId: billResult.insertId });
+    return NextResponse.json({ message: 'Bill created', billId: billId });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -43,7 +43,7 @@ export async function GET() {
 
       return {
         ...bill,
-        created_at: new Date(bill.create_at).toLocaleString('th-TH'),
+        created_at: new Date(bill.created_at).toLocaleString('th-TH'),
         items: items
       };
     }))
