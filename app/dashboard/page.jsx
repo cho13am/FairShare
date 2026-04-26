@@ -3,11 +3,10 @@ import { useSession, signIn, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState, useRef, useMemo, useEffect } from "react";
 
-// --- Sub-Component: AddItemModal (คงเดิมทุกประการ) ---
 const AddItemModal = ({ isOpen, onClose, onConfirm, itemName, initialPrice = "0", isEdit = false }) => {
   const [price, setPrice] = useState("0");
-  const [payeesInItem, setPayeesInItem] = useState([]); 
-  const [selectedPayeeIds, setSelectedPayeeIds] = useState([]); 
+  const [payeesInItem, setPayeesInItem] = useState([]);
+  const [selectedPayeeIds, setSelectedPayeeIds] = useState([]);
   const [newPayeeName, setNewPayeeName] = useState("");
 
   useEffect(() => {
@@ -17,8 +16,8 @@ const AddItemModal = ({ isOpen, onClose, onConfirm, itemName, initialPrice = "0"
   if (!isOpen) return null;
 
   const currentPrice = Number(price);
-  const pricePerPerson = selectedPayeeIds.length > 0 
-    ? (currentPrice / selectedPayeeIds.length).toFixed(2) 
+  const pricePerPerson = selectedPayeeIds.length > 0
+    ? (currentPrice / selectedPayeeIds.length).toFixed(2)
     : "0";
 
   const addPayee = () => {
@@ -72,12 +71,12 @@ const AddItemModal = ({ isOpen, onClose, onConfirm, itemName, initialPrice = "0"
           ))}
         </div>
 
-        <button 
+        <button
           onClick={() => {
             const selectedNames = payeesInItem.filter(p => selectedPayeeIds.includes(p.id)).map(p => p.name);
             onConfirm(price, selectedNames);
             setPrice("0"); setSelectedPayeeIds([]); setPayeesInItem([]);
-          }} 
+          }}
           style={{ width: '100%', padding: '18px', borderRadius: '15px', border: 'none', backgroundColor: '#FFD1DC', color: '#A0616A', fontSize: '18px', fontWeight: '800' }}
         >
           {isEdit ? "บันทึก" : "ตกลง"}
@@ -91,15 +90,15 @@ export default function DashboardPage() {
   const { data: session } = useSession();
   const router = useRouter();
   const fileInputRef = useRef(null);
-  
+
   const [activeTab, setActiveTab] = useState("items");
   const [items, setItems] = useState([]);
-  const [payees, setPayees] = useState([]); 
+  const [payees, setPayees] = useState([]);
   const [payeeMetadata, setPayeeMetadata] = useState({});
   const [newItemName, setNewItemName] = useState("");
   const [newPayeeName, setNewPayeeName] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState(null); 
+  const [editingItem, setEditingItem] = useState(null);
   const [editingPayee, setEditingPayee] = useState(null);
   const [viewingPayee, setViewingPayee] = useState(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -111,15 +110,17 @@ export default function DashboardPage() {
     items.forEach(item => {
       const perPerson = item.price / (item.payees.length || 1);
       item.payees.forEach(name => {
-        if (!summary[name]) summary[name] = { total: 0, status: "ยังไม่ได้จ่าย" };
+        const currentStatus = payeeMetadata[name]?.status || "ยังไม่ได้จ่าย";
+        if (!summary[name]) summary[name] = { total: 0, status: currentStatus };
         summary[name].total += perPerson;
       });
     });
     payees.forEach(p => {
-      if (!summary[p.name]) summary[p.name] = { total: 0, status: "ยังไม่ได้จ่าย" };
+      const currentStatus = payeeMetadata[p.name]?.status || "ยังไม่ได้จ่าย";
+      if (!summary[p.name]) summary[p.name] = { total: 0, status: currentStatus };
     });
     return Object.entries(summary).map(([name, data]) => ({ name, ...data }));
-  }, [items, payees]);
+  }, [items, payees, payeeMetadata]);
 
   const handleSaveBill = () => {
     if (!session) {
@@ -146,15 +147,29 @@ export default function DashboardPage() {
     setNewPayeeName("");
   };
 
+  const deletePayeeFromList = (payeeName) => {
+    setPayees((prev) => prev.filter((p) => p.name !== payeeName));
+    setItems((prevItems) =>
+      prevItems.map((item) => ({
+        ...item,
+        payees: item.payees.filter((name) => name !== payeeName),
+      }))
+    );
+
+    const newMetadata = { ...payeeMetadata };
+    delete newMetadata[payeeName];
+    setPayeeMetadata(newMetadata);
+  };
+
   return (
     <div style={{ padding: '0', fontFamily: '-apple-system, sans-serif', backgroundColor: '#FDFCFE', minHeight: '100vh', color: '#4A4A4A' }}>
-      
+
       <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 25px', backgroundColor: 'white', borderBottom: '1px solid #F1F1F1', position: 'relative' }}>
         <h1 style={{ fontSize: '20px', fontWeight: '800', margin: 0, color: '#333' }}>FairShare</h1>
-        
+
         {session ? (
           <div style={{ position: 'relative' }}>
-            <div 
+            <div
               onClick={() => setShowProfileMenu(!showProfileMenu)}
               style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
             >
@@ -163,13 +178,13 @@ export default function DashboardPage() {
 
             {showProfileMenu && (
               <div style={{ position: 'absolute', top: '45px', right: 0, backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 5px 20px rgba(0,0,0,0.1)', width: '150px', zIndex: 1100, border: '1px solid #F1F1F1', overflow: 'hidden' }}>
-                <button 
+                <button
                   onClick={() => router.push("/history")}
                   style={{ width: '100%', padding: '12px', border: 'none', background: 'none', textAlign: 'left', fontSize: '14px', cursor: 'pointer', borderBottom: '1px solid #F9F9F9', color: '#4A4A4A' }}
                 >
-                History
+                  History
                 </button>
-                <button 
+                <button
                   onClick={() => signOut()}
                   style={{ width: '100%', padding: '12px', border: 'none', background: 'none', textAlign: 'left', fontSize: '14px', cursor: 'pointer', color: '#FFB7B2', fontWeight: '600' }}
                 >
@@ -196,7 +211,7 @@ export default function DashboardPage() {
         </div>
 
         <div style={{ textAlign: 'center', marginBottom: '25px' }}>
-          <button 
+          <button
             onClick={handleSaveBill}
             style={{ backgroundColor: '#FFD1DC', color: '#A0616A', border: 'none', padding: '10px 30px', borderRadius: '12px', fontWeight: '700', cursor: 'pointer' }}
           >
@@ -228,75 +243,108 @@ export default function DashboardPage() {
               ))}
 
               <input type="file" ref={fileInputRef} style={{ display: 'none' }} />
-              <button onClick={() => { if(!session) signIn("google"); else router.push("/scanner"); }} style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '2px dashed #FFD1DC', background: 'white', color: '#A0616A', margin: '15px 0', cursor: 'pointer' }}>+ อัปโหลดรูปภาพใบเสร็จ {!session}</button>
-              
+              <button onClick={() => { if (!session) signIn("google"); else router.push("/scanner"); }} style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '2px dashed #FFD1DC', background: 'white', color: '#A0616A', margin: '15px 0', cursor: 'pointer' }}>+ อัปโหลดรูปภาพใบเสร็จ {!session}</button>
+
               <div style={{ display: 'flex', gap: '10px' }}>
                 <input value={newItemName} onChange={(e) => setNewItemName(e.target.value)} placeholder="ชื่อรายการ" style={{ flex: 2, padding: '12px', borderRadius: '12px', border: '1px solid #F1F1F1', outline: 'none' }} />
-                <button onClick={() => { if(newItemName) setIsModalOpen(true); }} style={{ flex: 1, backgroundColor: '#E2FCEF', color: '#2D6A4F', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer' }}>+ เพิ่ม</button>
+                <button onClick={() => { if (newItemName) setIsModalOpen(true); }} style={{ flex: 1, backgroundColor: '#E2FCEF', color: '#2D6A4F', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer' }}>+ เพิ่ม</button>
               </div>
               <button onClick={() => setItems([])} style={{ width: '100%', marginTop: '10px', color: '#FFB7B2', background: 'none', border: '1px solid #FFB7B2', padding: '8px', borderRadius: '8px', fontSize: '12px' }}>ลบรายการทั้งหมด</button>
             </div>
           ) : (
             <div>
               <div style={{ display: 'flex', padding: '10px', fontSize: '12px', fontWeight: '700', color: '#999' }}>
-                <span style={{ flex: 1.5 }}>ชื่อคน</span><span style={{ flex: 1 }}>จ่าย</span><span style={{ flex: 1.5 }}>สถานะ</span><span style={{ flex: 1 }}>Action</span>
+                <span style={{ flex: 1.5 }}>ชื่อคน</span><span style={{ flex: 1 }}>ยอดรวม</span><span style={{ flex: 1.5 }}>สถานะ</span><span style={{ flex: 1 }}>Action</span>
               </div>
-              {combinedPayees.map((p, idx) => (
-                <div key={idx} style={{ display: 'flex', padding: '15px 10px', borderBottom: '1px solid #F1F1F1', fontSize: '14px', alignItems: 'center' }}>
-                  <span style={{ flex: 1.5, fontWeight: '600' }}>{p.name}</span>
-                  <span style={{ flex: 1 }}>{p.total.toFixed(0)}</span>
-                  <span style={{ flex: 1.5 }}><span style={{ color: '#FFB7B2', fontSize: '11px', backgroundColor: '#FFF5F7', padding: '4px 8px', borderRadius: '8px' }}>{p.status}</span></span>
-                  <div style={{ flex: 1, display: 'flex', gap: '10px', color: '#BBB' }}>
-                    <button onClick={() => setEditingPayee(p)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}>✏️</button>
-                    <button onClick={() => setViewingPayee(p.name)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}>👁️</button>
-                    <button onClick={() => { setPayees(payees.filter(payee => payee.name !== p.name)); }} style={{ border: 'none', background: 'none', cursor: 'pointer' }}>🗑️</button>
+              {combinedPayees.map((p, idx) => {
+                const currentStatus = payeeMetadata[p.name]?.status || "ยังไม่ได้จ่าย";
+                const isPaid = currentStatus === "จ่ายแล้ว";
+
+                return (
+                  <div key={idx} style={{ display: 'flex', padding: '15px 10px', borderBottom: '1px solid #F1F1F1', fontSize: '14px', alignItems: 'center' }}>
+                    <span style={{ flex: 1.5, fontWeight: '600' }}>{p.name}</span>
+                    <span style={{ flex: 1 }}>{p.total.toFixed(0)}</span>
+                    <span style={{ flex: 1.5 }}>
+                      <span style={{
+                        color: isPaid ? '#2D6A4F' : '#FFB7B2',
+                        fontSize: '11px',
+                        backgroundColor: isPaid ? '#E2FCEF' : '#FFF5F7',
+                        padding: '4px 8px',
+                        borderRadius: '8px',
+                        fontWeight: '700'
+                      }}>
+                        {currentStatus}
+                      </span>
+                    </span>
+                    <div style={{ flex: 1, display: 'flex', gap: '10px', color: '#BBB' }}>
+                      <button onClick={() => setEditingPayee(p)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}>✏️</button>
+                      <button onClick={() => setViewingPayee(p.name)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}>👁️</button>
+                      <button onClick={() => deletePayeeFromList(p.name)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}>🗑️</button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
-                <input value={newPayeeName} onChange={(e) => setNewItemName(e.target.value)} placeholder="ชื่อคนจ่าย" style={{ flex: 2, padding: '12px', borderRadius: '12px', border: '1px solid #F1F1F1', outline: 'none' }} />
-                <button onClick={addGlobalPayee} style={{ flex: 1, backgroundColor: '#E2FCEF', color: '#2D6A4F', border: 'none', borderRadius: '12px', fontWeight: '700' }}>+ เพิ่ม</button>
+                <input value={newPayeeName} onChange={(e) => setNewPayeeName(e.target.value)} placeholder="ชื่อคนจ่าย" style={{ flex: 2, padding: '12px', borderRadius: '12px', border: '1px solid #F1F1F1', outline: 'none' }} />
+                <button onClick={addGlobalPayee} style={{ flex: 1, backgroundColor: '#E2FCEF', color: '#2D6A4F', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer' }}>+ เพิ่ม</button>
               </div>
-              <button onClick={() => setPayees([])} style={{ width: '100%', marginTop: '10px', color: '#FFB7B2', background: 'none', border: '1px solid #FFB7B2', padding: '8px', borderRadius: '8px', fontSize: '12px' }}>ลบคนจ่ายทั้งหมด</button>
+              <button onClick={() => { setPayees([]); setItems(items.map(i => ({ ...i, payees: [] }))); }} style={{ width: '100%', marginTop: '10px', color: '#FFB7B2', background: 'none', border: '1px solid #FFB7B2', padding: '8px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>ลบคนจ่ายทั้งหมด</button>
+            </div>
+          )}
+
+          {editingPayee && (
+            <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100 }}>
+              <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '20px', width: '320px', textAlign: 'center' }}>
+                <h3 style={{ marginBottom: '20px' }}>แก้ไขสถานะของ {editingPayee.name}</h3>
+                <button
+                  onClick={() => {
+                    setPayeeMetadata(prev => ({ ...prev, [editingPayee.name]: { status: "จ่ายแล้ว" } }));
+                    setEditingPayee(null);
+                  }}
+                  style={{ width: '100%', padding: '12px', marginBottom: '10px', backgroundColor: '#E2FCEF', color: '#2D6A4F', border: 'none', borderRadius: '12px', fontWeight: '600', cursor: 'pointer' }}
+                >
+                  จ่ายแล้ว
+                </button>
+
+                <button
+                  onClick={() => {
+                    setPayeeMetadata(prev => ({ ...prev, [editingPayee.name]: { status: "ยังไม่ได้จ่าย" } }));
+                    setEditingPayee(null);
+                  }}
+                  style={{ width: '100%', padding: '12px', backgroundColor: '#FFF5F7', color: '#FFB7B2', border: 'none', borderRadius: '12px', fontWeight: '600', cursor: 'pointer'  }}
+                >
+                  ยังไม่ได้จ่าย
+                </button>
+                <button onClick={() => setEditingPayee(null)} style={{ marginTop: '15px', background: 'none', border: 'none', color: '#999', cursor: 'pointer' }}>ยกเลิก</button>
+              </div>
             </div>
           )}
         </div>
       </div>
 
-      <AddItemModal 
-        isOpen={isModalOpen} 
-        onClose={() => { setIsModalOpen(false); setEditingItem(null); }} 
-        onConfirm={handleConfirmAdd} 
-        itemName={editingItem ? editingItem.name : newItemName} 
+      <AddItemModal
+        isOpen={isModalOpen}
+        onClose={() => { setIsModalOpen(false); setEditingItem(null); }}
+        onConfirm={handleConfirmAdd}
+        itemName={editingItem ? editingItem.name : newItemName}
         initialPrice={editingItem ? editingItem.price : "0"}
         isEdit={!!editingItem}
       />
 
-      {editingPayee && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100 }}>
-          <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '20px', width: '320px', textAlign: 'center' }}>
-             <h3 style={{ marginBottom: '20px' }}>แก้ไขสถานะ</h3>
-             <button onClick={() => { setEditingPayee(null); }} style={{ width: '100%', padding: '12px', marginBottom: '10px', backgroundColor: '#E2FCEF', color: '#2D6A4F', border: 'none', borderRadius: '12px', fontWeight: '600' }}>จ่ายแล้ว</button>
-             <button onClick={() => { setEditingPayee(null); }} style={{ width: '100%', padding: '12px', backgroundColor: '#FFF5F7', color: '#FFB7B2', border: 'none', borderRadius: '12px', fontWeight: '600' }}>ยังไม่ได้จ่าย</button>
-             <button onClick={() => setEditingPayee(null)} style={{ marginTop: '15px', background: 'none', border: 'none', color: '#999', cursor: 'pointer' }}>ยกเลิก</button>
-          </div>
-        </div>
-      )}
-
       {viewingPayee && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100 }}>
           <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '24px', width: '380px' }}>
-             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-                <h3 style={{ margin: 0 }}>รายการที่ {viewingPayee} สั่ง</h3>
-                <button onClick={() => setViewingPayee(null)} style={{ border: 'none', background: 'none', fontSize: '20px', cursor: 'pointer' }}>×</button>
-             </div>
-             {items.filter(i => i.payees.includes(viewingPayee)).map(i => (
-                 <div key={i.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #F9F9F9' }}>
-                   <span>{i.name}</span>
-                   <span style={{ fontWeight: '700' }}>฿{(i.price / i.payees.length).toFixed(2)}</span>
-                 </div>
-             ))}
-             <button onClick={() => setViewingPayee(null)} style={{ width: '100%', marginTop: '20px', padding: '12px', backgroundColor: '#000', color: '#fff', border: 'none', borderRadius: '12px', cursor: 'pointer' }}>ปิด</button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0 }}>รายการที่ {viewingPayee} สั่ง</h3>
+              <button onClick={() => setViewingPayee(null)} style={{ border: 'none', background: 'none', fontSize: '20px', cursor: 'pointer' }}>×</button>
+            </div>
+            {items.filter(i => i.payees.includes(viewingPayee)).map(i => (
+              <div key={i.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #F9F9F9' }}>
+                <span>{i.name}</span>
+                <span style={{ fontWeight: '700' }}>฿{(i.price / i.payees.length).toFixed(2)}</span>
+              </div>
+            ))}
+            <button onClick={() => setViewingPayee(null)} style={{ width: '100%', marginTop: '20px', padding: '12px', backgroundColor: '#000', color: '#fff', border: 'none', borderRadius: '12px', cursor: 'pointer' }}>ปิด</button>
           </div>
         </div>
       )}
