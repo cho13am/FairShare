@@ -8,11 +8,12 @@ export async function POST(req) {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({error: "Unauthorized"}, {status: 401});
 
-    const {title, total_amount, items, receipt_url} = await req.json();
+    const data = await req.json();
+    const { title, bill_name, total_amount, items, receipt_url } = data;
 
     const [billResult] = await db.query(
-      'INSERT INTO bills (title, total_amount, payer_email, receipt_url) VALUES (?, ?, ?, ?)',
-      [title, total_amount, session.user.email, receipt_url]
+      'INSERT INTO bills (title, bill_name, total_amount, payer_id, receipt_url) VALUES (?, ?, ?, ?, ?)',
+      [title, bill_name, total_amount, session.user.email, receipt_url]
     );
 
     const billId = billResult.insertId;
@@ -21,7 +22,7 @@ export async function POST(req) {
       for(const item of items) {
         await db.query(
           'INSERT INTO bill_items (bill_id, item_name, price) VALUES (?, ?, ?)',
-          [billId, item.name, item.price]
+          [billId, item.name || item.item_name, item.price || item.amount]
         );
       }
     }
