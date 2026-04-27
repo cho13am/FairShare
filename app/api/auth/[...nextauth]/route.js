@@ -1,5 +1,7 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import { db } from "@/lib/firebase";
+import { collection, query, where, getDocs, addDoc } from "firebase/firestore"; // ✅ ใช้คำสั่ง Firestore
 
 export const authOptions = {
   providers: [
@@ -11,19 +13,22 @@ export const authOptions = {
   callbacks: {
     async signIn({ user }) {
       try {
-        const { db } = await import('@/lib/db');
-        const [rows] = await db.query('SELECT * FROM users WHERE email = ?', [user.email]);
-        
-        if (rows.length === 0) {
-          await db.query(
-            'INSERT INTO users (username, email) VALUES (?, ?)',
-            [user.name, user.email]
-          );
+        const usersRef = collection(db, "users");
+        const q = query(usersRef, where("email", "==", user.email));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+          await addDoc(usersRef, {
+            username: user.name,
+            email: user.email,
+            image: user.image,
+            createdAt: new Date()
+          });
         }
         return true;
       } catch (error) {
-        console.error("Error saving user:", error);
-        return true;
+        console.error("Error saving user to Firebase:", error);
+        return true; 
       }
     },
     async redirect({ url, baseUrl }) {

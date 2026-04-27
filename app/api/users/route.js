@@ -1,13 +1,13 @@
-import { db } from '@/lib/db';
+import { db } from '@/lib/firebase';
+import { collection, getDocs } from "firebase/firestore";
 import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    const [rows] = await db.query('SELECT id, username, email FROM users');
-    
-    return NextResponse.json(rows);
+    const querySnapshot = await getDocs(collection(db, "users"));
+    const users = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return NextResponse.json(users);
   } catch (error) {
-    console.error('Database Error:', error);
-    return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
