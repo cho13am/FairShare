@@ -28,14 +28,16 @@ export default function ScannerPage() {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      alert(`เลือกรูปภาพ ${file.name} สำเร็จ!`);
-      router.push("/dashboard");
+      const imageUrl = URL.createObjectURL(file);
+
+      alert(`เลือกรูปภาพ ${file.name} สำเร็จ! กำลังไปที่หน้าสรุปรายการ...`);
+      router.push(`/dashboard?image=${encodeURIComponent(imageUrl)}`);
     }
   };
 
   return (
     <div style={{ backgroundColor: "#000", height: "100vh", width: "100%", position: "relative", overflow: "hidden", fontFamily: "-apple-system, sans-serif" }}>
-      
+
       <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" style={{ display: "none" }} />
       <div style={{ height: "70%", width: "100%", display: "flex", justifyContent: "center", alignItems: "center", borderBottom: "1px solid #333" }}>
         <p style={{ color: "#FFF", fontSize: "14px", opacity: 0.5 }}>กำลังเปิดกล้อง...</p>
@@ -55,16 +57,16 @@ export default function ScannerPage() {
             <style>{` @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } } `}</style>
             <h3 style={{ textAlign: "center", color: "#BBB", fontSize: "13px", fontWeight: "600", marginBottom: "20px", letterSpacing: "0.5px" }}>เลือกวิธีอัปโหลดใบเสร็จ</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              
-              <button 
+
+              <button
                 onClick={handlePhotoLibraryClick}
                 style={{ width: "100%", padding: "18px", borderRadius: "18px", border: "none", backgroundColor: "#dededeff", color: "#000000ff", fontSize: "16px", fontWeight: "600", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}
               >
-              Photo Library
+                Photo Library
               </button>
 
               <button onClick={() => alert("ฟังก์ชันถ่ายภาพกำลังพัฒนา")} style={{ width: "100%", padding: "18px", borderRadius: "18px", border: "none", backgroundColor: "#dededeff", color: "#000000ff", fontSize: "16px", fontWeight: "600", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}>
-              Take Photo
+                Take Photo
               </button>
 
               <button onClick={() => router.back()} style={{ width: "100%", padding: "16px", borderRadius: "18px", border: "none", backgroundColor: "#FFF5F7", color: "#FFB7B2", fontSize: "16px", fontWeight: "700", marginTop: "10px" }}>
@@ -80,7 +82,7 @@ export default function ScannerPage() {
         <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", backgroundColor: "rgba(0,0,0,0.6)", zIndex: 3000, display: "flex", justifyContent: "center", alignItems: "center", padding: "20px" }}>
           <div style={{ backgroundColor: "white", width: "100%", maxWidth: "300px", borderRadius: "20px", overflow: "hidden", textAlign: "center", animation: "popIn 0.3s ease-out" }}>
             <style>{` @keyframes popIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } } `}</style>
-            
+
             <div style={{ padding: "25px 20px" }}>
               <div style={{ fontSize: "40px", marginBottom: "15px" }}>📁</div>
               <h3 style={{ margin: "0 0 10px 0", fontSize: "17px", fontWeight: "700", color: "#4A4A4A" }}>"FairShare" ต้องการเข้าถึงรูปภาพของคุณ</h3>
@@ -88,13 +90,13 @@ export default function ScannerPage() {
             </div>
 
             <div style={{ display: "flex", borderTop: "1px solid #F1F1F1" }}>
-              <button 
+              <button
                 onClick={() => setShowPermission(false)}
                 style={{ flex: 1, padding: "15px", border: "none", background: "none", color: "#FFB7B2", fontSize: "15px", fontWeight: "600", cursor: "pointer", borderRight: "1px solid #F1F1F1" }}
               >
                 ไม่อนุญาต
               </button>
-              <button 
+              <button
                 onClick={handleAllowPermission}
                 style={{ flex: 1, padding: "15px", border: "none", background: "none", color: "#7B1FA2", fontSize: "15px", fontWeight: "700", cursor: "pointer" }}
               >

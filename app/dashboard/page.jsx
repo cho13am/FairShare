@@ -1,15 +1,20 @@
 "use client";
 import { useSession, signIn, signOut } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { useState, useRef, useMemo, useEffect } from "react";
+
 
 const AddItemModal = ({ isOpen, onClose, onConfirm, itemName, initialPrice = "0", isEdit = false }) => {
   const [price, setPrice] = useState("0");
   const [payeesInItem, setPayeesInItem] = useState([]);
   const [selectedPayeeIds, setSelectedPayeeIds] = useState([]);
   const [newPayeeName, setNewPayeeName] = useState("");
+  const searchParams = useSearchParams();
+  const hasScanned = searchParams.get('scanned');
 
   useEffect(() => {
+    
     if (isOpen) setPrice(initialPrice.toString());
   }, [isOpen, initialPrice]);
 
@@ -90,6 +95,7 @@ export default function DashboardPage() {
   const { data: session } = useSession();
   const router = useRouter();
   const fileInputRef = useRef(null);
+  const searchParams = useSearchParams();
 
   const [activeTab, setActiveTab] = useState("items");
   const [items, setItems] = useState([]);
@@ -102,6 +108,18 @@ export default function DashboardPage() {
   const [editingPayee, setEditingPayee] = useState(null);
   const [viewingPayee, setViewingPayee] = useState(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+
+  useEffect(() => {
+    const scanned = searchParams.get("scanned");
+    if (scanned === "true") {
+      setItems(prev => [
+        ...prev, 
+        { id: Date.now(), name: "รายการจากใบเสร็จ", price: 0, payees: [] }
+      ]);
+      
+      router.replace("/dashboard");
+    }
+  }, [searchParams, router]);
 
   const totalAmount = useMemo(() => items.reduce((sum, i) => sum + i.price, 0), [items]);
 
@@ -122,11 +140,42 @@ export default function DashboardPage() {
     return Object.entries(summary).map(([name, data]) => ({ name, ...data }));
   }, [items, payees, payeeMetadata]);
 
-  const handleSaveBill = () => {
+  const handleSaveBill = async () => {
     if (!session) {
       signIn("google", { callbackUrl: "/dashboard" });
-    } else {
-      alert(`บันทึกบิลสำเร็จ!`);
+      return;
+    }
+
+    if (items.length === 0) {
+      alert("กรุณาเพิ่มรายการอาหารก่อนบันทึกครับ");
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/bills', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: billTitle || "มื้ออาหารใหม่",
+          bill_name: billTitle || "มื้ออาหารใหม่",
+          total_amount: totalAmount,
+          items: items.map(i => ({ name: i.name, price: i.price }))
+        })
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        alert(`บันทึกบิลสำเร็จ! (ID: ${data.billId})`);
+        // ล้างข้อมูลหน้าจอหลังบันทึกเสร็จ
+        setItems([]);
+        setBillTitle("");
+        router.push("/history"); // พาไปหน้าประวัติทันที
+      } else {
+        alert("บันทึกไม่สำเร็จ: " + data.error);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
     }
   };
 
